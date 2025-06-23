@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Daftar Kad Baru & Rekod Bacaan Sifir</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    h2, h3 { text-align: center; }
+    form { background: #fff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; }
+    input, select { width: 100%; padding: 8px; margin: 6px 0; }
+    button { padding: 10px; background: #007BFF; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    button:hover { background: #0056b3; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+<h2>DAFTAR KAD BARU & REKOD MARKAH</h2>
+
+<form id="daftarForm">
+  <label for="uid">Pilih UID RFID:</label>
+  <select id="uid" name="uid" required>
+    <option value="">Loading UID...</option>
+  </select>
+
+  <label for="nama">Nama Murid:</label>
+  <input type="text" id="nama" name="nama" required>
+
+  <h3>MARKAH SIFIR 2 - 12</h3>
+  <div id="sifirInputs"></div>
+
+  <label for="bonus">Bonus:</label>
+  <input type="number" id="bonus" name="bonus" value="0">
+
+  <label for="penalti">Penalti:</label>
+  <input type="number" id="penalti" name="penalti" value="0">
+
+  <button type="submit">DAFTAR & SIMPAN</button>
+  <div id="responseMsg" class="success"></div>
+</form>
+
+<script>
+const appsScriptURL = "https://script.google.com/macros/s/AKfycbxvvzJ8WhyZm7BpBYanq70bQnLKpwjqBVIY5dB4oKQpw6hJG3eTgeYPVm7Q-cCKQRBpZQ/exec";
+const getUIDBaruURL = "https://script.google.com/macros/s/AKfycbxvvzJ8WhyZm7BpBYanq70bQnLKpwjqBVIY5dB4oKQpw6hJG3eTgeYPVm7Q-cCKQRBpZQ/exec?getUIDBaru";
+
+// Generate input untuk sifir 2-12
+const sifirInputs = document.getElementById("sifirInputs");
+for (let i = 2; i <= 12; i++) {
+  const label = document.createElement("label");
+  label.textContent = "Sifir " + i + ":";
+  const input = document.createElement("input");
+  input.type = "number";
+  input.name = "sifir";
+  input.value = 0;
+  sifirInputs.appendChild(label);
+  sifirInputs.appendChild(input);
+}
+
+// Fetch senarai UID baru
+fetch(getUIDBaruURL)
+  .then(response => response.json())
+  .then(data => {
+    const uidSelect = document.getElementById("uid");
+    uidSelect.innerHTML = "";
+    if (data.length === 0) {
+      uidSelect.innerHTML = "<option value=''>Tiada UID Baru</option>";
+    } else {
+      data.forEach(uid => {
+        const option = document.createElement("option");
+        option.value = uid;
+        option.textContent = uid;
+        uidSelect.appendChild(option);
+      });
+    }
+  })
+  .catch(err => {
+    document.getElementById("uid").innerHTML = "<option value=''>Gagal ambil UID</option>";
+  });
+
+// Hantar borang
+  document.getElementById("daftarForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const uid = document.getElementById("uid").value;
+    const nama = document.getElementById("nama").value.trim();
+    const bonus = parseInt(document.getElementById("bonus").value || "0");
+    const penalti = parseInt(document.getElementById("penalti").value || "0");
+
+    const sifirValues = Array.from(document.querySelectorAll('input[name="sifir"]')).map(input => parseInt(input.value || "0"));
+
+    fetch(appsScriptURL, {
+      method: "POST",
+      body: JSON.stringify({
+        uid: uid,
+        nama: nama,
+        sifir: sifirValues,
+        bonus: bonus,
+        penalti: penalti
+      }),
+      headers: { "Content-Type": "application/json" }
+    })
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById("responseMsg").textContent = "✅ Kad berjaya didaftar & markah disimpan!";
+      document.getElementById("responseMsg").className = "success";
+    })
+    .catch(error => {
+      document.getElementById("responseMsg").textContent = "❌ Gagal menyimpan data!";
+      document.getElementById("responseMsg").className = "error";
+    });
+  });
+</script>
+
+</body>
+</html>
